@@ -23,6 +23,7 @@ flags.DEFINE_boolean('tiny', False, 'yolov3 or yolov3-tiny')
 flags.DEFINE_string('weights', './checkpoints/yolov3.tf',
                     'path to weights file')
 flags.DEFINE_string('classes', './data/coco.names', 'path to classes file')
+flags.DEFINE_string('num_classes', '80', 'number of classes in the dataset')
 flags.DEFINE_enum('mode', 'fit', ['fit', 'eager_fit', 'eager_tf'],
                   'fit: model.fit, '
                   'eager_fit: model.fit(run_eagerly=True), '
@@ -42,11 +43,11 @@ flags.DEFINE_float('learning_rate', 1e-3, 'learning rate')
 
 def main(_argv):
     if FLAGS.tiny:
-        model = YoloV3Tiny(FLAGS.size, training=True)
+        model = YoloV3Tiny(FLAGS.size, training=True, classes=int(FLAGS.num_classes))
         anchors = yolo_tiny_anchors
         anchor_masks = yolo_tiny_anchor_masks
     else:
-        model = YoloV3(FLAGS.size, training=True)
+        model = YoloV3(FLAGS.size, training=True, classes=int(FLAGS.num_classes))
         anchors = yolo_anchors
         anchor_masks = yolo_anchor_masks
 
@@ -58,7 +59,7 @@ def main(_argv):
     train_dataset = train_dataset.batch(FLAGS.batch_size)
     train_dataset = train_dataset.map(lambda x, y: (
         dataset.transform_images(x, FLAGS.size),
-        dataset.transform_targets(y, anchors, anchor_masks, 80)))
+        dataset.transform_targets(y, anchors, anchor_masks, int(FLAGS.num_classes))))
     train_dataset = train_dataset.prefetch(
         buffer_size=tf.data.experimental.AUTOTUNE)
 
@@ -69,7 +70,7 @@ def main(_argv):
     val_dataset = val_dataset.batch(FLAGS.batch_size)
     val_dataset = val_dataset.map(lambda x, y: (
         dataset.transform_images(x, FLAGS.size),
-        dataset.transform_targets(y, anchors, anchor_masks, 80)))
+        dataset.transform_targets(y, anchors, anchor_masks, int(FLAGS.num_classes))))
 
     if FLAGS.transfer != 'none':
         model.load_weights(FLAGS.weights)
@@ -103,6 +104,7 @@ def main(_argv):
                         freeze_all(l)
 
     optimizer = tf.keras.optimizers.Adam(lr=FLAGS.learning_rate)
+    # loss = [YoloLoss(anchors[mask], int(FLAGS.num_classes)) for mask in anchor_masks]
     loss = [YoloLoss(anchors[mask]) for mask in anchor_masks]
 
     if FLAGS.mode == 'eager_tf':
