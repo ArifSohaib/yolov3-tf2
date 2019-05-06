@@ -1,0 +1,1 @@
+python train.py --batch_size 8 --dataset "../../AutonomousRobotChallenge/VocOutput/Farmaid-Bot Images-TFRecords-export/20190413_161235.mp4#t=*.tfrecord" --classes "../../AutonomousRobotChallenge/VocOutput/Farmaid-Bot Images-TFRecords-export/farmaid.names" --epochs 100 --mode eager_tf --transfer frozen
